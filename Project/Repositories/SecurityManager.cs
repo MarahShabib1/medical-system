@@ -13,17 +13,18 @@ namespace Project.Repositories
     public class SecurityManager: ISecurityManager
     {
 
-       public async void SignIn(HttpContext httpContext, User user)
+       public async void SignIn(HttpContext httpContext, User user, string role)
         {
 
             var claims = new List<Claim>()
-              {
+              { 
                  new Claim(ClaimTypes.Name,user.FirstName),
                   new Claim(ClaimTypes.Email,user.email),
+                  new Claim( ClaimTypes.Role,role),
               };
             var idn = new ClaimsIdentity(claims, "User Claim");
             var userPrinciple = new ClaimsPrincipal(idn);
-           await httpContext.SignInAsync(userPrinciple);
+           await httpContext.SignInAsync("User_Cookie",userPrinciple);
         }
 
 

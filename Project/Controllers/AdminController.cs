@@ -26,42 +26,36 @@ namespace Project.Controllers
     [ApiController]
     public class AdminController : ControllerBase
     {
-        private readonly IConfiguration _Configuration;
+       
         private readonly DataContext _context;
         private readonly IUserRepository userRep;
         private readonly IFileRepository fileRep;
         private readonly ISecurityManager securityManager;
-        private readonly IMapper _mapper;
+     
 
-        public AdminController(IConfiguration configuration,
+        public AdminController(
             DataContext context , 
             IUserRepository UserRep ,
             ISecurityManager Securitymanager, 
-            IMapper mapper ,
             IFileRepository FileRep)
         {
              userRep = UserRep;
-            _Configuration = configuration;
             securityManager = Securitymanager;
            _context = context;
-            _mapper = mapper;
             fileRep = FileRep;
         }
-       
-        [Authorize(AuthenticationSchemes = "Admin")]
-      // [Authorize]
+
+       // [Authorize(AuthenticationSchemes = "Admin")]
+        [Authorize(Roles ="Admin")]
         [HttpGet]
         public ActionResult<IEnumerable<string>> Get()
         {
-
-
             return new string[] { "value2" };
         }
        
         [HttpGet("index")]
         public ActionResult<IEnumerable<string>> index()
         {
-
 
             return new string[] { "logadmincont" };
         }
@@ -71,21 +65,7 @@ namespace Project.Controllers
         {
             return new string[] { "You should login first :)" };
         }
-        [HttpGet("login")]
-        public ActionResult<IEnumerable<string>> login()
-        {
-            var claims = new List<Claim>()
-            {
-               new Claim(ClaimTypes.Name,"MM"),
-                new Claim(ClaimTypes.Email,"MM@"),
-            };
-            var idn = new ClaimsIdentity(claims, "User Claim");
-            var userPrinciple = new ClaimsPrincipal(new[] { idn });
-            HttpContext.SignInAsync("Admin",userPrinciple);
-            return RedirectToAction("index");
-
-         
-        }
+      
 
         [HttpGet("login/{login}/{pass}")]   //Done
         public async Task<ActionResult<IEnumerable<string>>> login(string login, string pass)
@@ -95,7 +75,7 @@ namespace Project.Controllers
             if (user !=null)
             {
             
-                securityManager.SignIn(this.HttpContext, user);
+                securityManager.SignIn(this.HttpContext, user,"Admin");
             }
             else
             {
@@ -105,7 +85,8 @@ namespace Project.Controllers
 
             return new string[] {"Login Succ"};
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+
+        [Authorize(Roles = "Admin")]
         [HttpGet("logout")] //Done
         public ActionResult<IEnumerable<string>> logout()
         {
@@ -114,7 +95,7 @@ namespace Project.Controllers
             return new string[] { "Logout Succ"};
         }
 
-        [Authorize(AuthenticationSchemes = "Admin")]
+      //  [Authorize(Roles = "Admin")]
         [HttpPost("User")] //Done
         public async Task<ActionResult<IEnumerable<string>>> Post(User model)
         {   
@@ -145,7 +126,9 @@ namespace Project.Controllers
             }
             return BadRequest();
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+
+
+        [Authorize(Roles = "Admin")]
         [HttpPost("Doctor")] //Done
         public async Task< ActionResult<IEnumerable<string>>> Post(Doctor model)
         {   
@@ -183,7 +166,7 @@ namespace Project.Controllers
 
         }
 
-        [Authorize(AuthenticationSchemes = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpGet("AllDoctors")] //Done
         public  async Task<IActionResult> GetDR()
         {
@@ -205,13 +188,13 @@ namespace Project.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get doctors");
             }
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpGet("Doctor/{id}")] //Done
         public async Task<IActionResult> GetSDR(int id)
         {
             try
             {
-       
+               
                 if (_context.doctor.Count() == 0)
                 {
                     return NotFound($"There is no doctors in DB");
@@ -234,7 +217,7 @@ namespace Project.Controllers
 
 
 
-        [Authorize(AuthenticationSchemes = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpPut("Doctor/{id}")] //Done
         public async Task<ActionResult<IEnumerable<string>>> putdr([FromRoute] int id,Doctor model)
         { 
@@ -273,7 +256,7 @@ namespace Project.Controllers
 
         }
 
-        [Authorize(AuthenticationSchemes = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpPut("User/{id}")] //Done
         public async Task< ActionResult<IEnumerable<string>>> Put2(int id,User model)
         {
@@ -308,7 +291,7 @@ namespace Project.Controllers
         }
 
 
-        [Authorize(AuthenticationSchemes = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}")]
         public async Task<ActionResult<IEnumerable<string>>> delete(int id)
         {
@@ -332,7 +315,7 @@ namespace Project.Controllers
             
         }
 
-        [Authorize(AuthenticationSchemes = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpPost("import")] //Done
         public async Task<IActionResult> import(IFormFile file)
         {
@@ -356,7 +339,7 @@ namespace Project.Controllers
             return BadRequest();
         }
 
-        [Authorize(AuthenticationSchemes = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpGet("AllMedicine")] //Done
         public async Task<IActionResult> GetAllMed()
         {
@@ -378,7 +361,7 @@ namespace Project.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get Medicines");
             }
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpGet("Medicine/{id}")] //Done
         public async Task<IActionResult> GetMed(int id)
         {
@@ -408,7 +391,7 @@ namespace Project.Controllers
             }
         
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpGet("AllCompanies")] //Done
         public async Task<IActionResult> GetAllCompanies()
         {
@@ -430,7 +413,8 @@ namespace Project.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get Medicines");
             }
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+
+        [Authorize(Roles = "Admin")]
         [HttpGet("Company/{id}")] //Done
         public async Task<IActionResult> Getcompany(int id)
         {
@@ -461,7 +445,8 @@ namespace Project.Controllers
             }
 
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+
+        [Authorize(Roles = "Admin")]
         [HttpPut("Medicine/{id}")] //Done
         public async Task<ActionResult<IEnumerable<string>>> PutMedicine(int id, Medicine model)
         {
@@ -494,7 +479,8 @@ namespace Project.Controllers
 
             return BadRequest();
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+
+        [Authorize(Roles = "Admin")]
         [HttpPut("Company/{id}")] //Done
         public async Task<ActionResult<IEnumerable<string>>> Putcompany(int id, Company model)
         {    // on delete cascade when deleting comapny all its medicines will be deleted too.
@@ -527,7 +513,8 @@ namespace Project.Controllers
 
             return BadRequest();
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+
+        [Authorize(Roles = "Admin")]
         [HttpDelete("Medicine/{id}")]
         public async Task<ActionResult<IEnumerable<string>>> delete_Medicine(int id)
         {
@@ -550,7 +537,8 @@ namespace Project.Controllers
             return BadRequest();
 
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+
+        [Authorize(Roles = "Admin")]
         [HttpDelete("company/{id}")]
         public async Task<ActionResult<IEnumerable<string>>> delete_Company(int id)
         {
@@ -573,7 +561,9 @@ namespace Project.Controllers
             return BadRequest();
 
         }
-        [Authorize(AuthenticationSchemes = "Admin")]
+
+
+        [Authorize(Roles = "Admin")]
         [HttpGet("UserRole/{id}")] //Done
         public async Task<IActionResult> Get_UserRole(int id)
         {

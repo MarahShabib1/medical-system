@@ -55,29 +55,19 @@ namespace Project
             services
 .AddAuthentication(op =>
 {
-    op.DefaultScheme = "Management_Scheme";
+    op.DefaultScheme = "User_Cookie";
 })
-.AddCookie("Management_Scheme", options =>
-{
-    options.LoginPath = "/Values/login1";
-    options.Cookie.Name = "Maraaaah";
-    options.LogoutPath = "/Values/logout";
-});
-            services
-.AddAuthentication(op =>
-{
-    op.DefaultScheme = "Admin";
-})
-.AddCookie("Admin", options =>
+.AddCookie("User_Cookie", options =>
 {
     options.LoginPath = "/admin/Messagelogin";
-    options.Cookie.Name = "Admin";
+    options.Cookie.Name = "User_Cookie";
     options.LogoutPath = "/Values/logout";
 });
 
+
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ISecurityManager, SecurityManager>();
-            services.AddTransient<IFileRepository, FileRepository>();
+            services.AddScoped<IFileRepository, FileRepository>();
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
             

@@ -32,10 +32,8 @@ namespace Project.Repositories
         }
         public async Task<User> Login(string login, string pass, string role)
         {
-            string key = _Configuration.GetValue<string>("Secret:key");
-            pass += key;
-            var passbyte = Encoding.UTF8.GetBytes(pass);
-            string encode1 = Convert.ToBase64String(passbyte);
+           
+            string encode1 = encrypte_pass(pass);
 
             var user = await _context.user1.Where(c => c._Login == login && c.pwd == encode1).FirstOrDefaultAsync();
            
@@ -54,11 +52,6 @@ namespace Project.Repositories
                 return null;
             }
 
-            var claims = new List<Claim>()
-              {
-                
-              };
-        
             return userCheck;
 
         }

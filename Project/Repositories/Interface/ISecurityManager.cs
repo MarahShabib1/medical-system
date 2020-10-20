@@ -10,7 +10,7 @@ namespace Project.Repositories.Interface
   public  interface ISecurityManager
     {
 
-         void SignIn(HttpContext httpContext, User user);
+         void SignIn(HttpContext httpContext, User user ,string role);
         void Signout(HttpContext httpContext);
 
     }
