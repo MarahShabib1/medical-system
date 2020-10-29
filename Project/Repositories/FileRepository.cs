@@ -34,7 +34,6 @@ namespace Project.Repositories
                 {
                     await file.CopyToAsync(stream);
                 }
-
             }
         }
 
@@ -67,23 +66,18 @@ namespace Project.Repositories
                 var find_company = await _context.company.Where(o => o.Name == icon.companyName).FirstOrDefaultAsync();
 
                 if (find_company == null)
-                {
-                    find_company = new Company { Name = icon.companyName };
+                {   
+                    find_company = new Company { Name = icon.companyName };  //Create ll company
                     _context.company.Add(find_company);
                 }
-
                 var find_medicine = await _context.medicine.Where(o => o.Name == icon.medicineName).FirstOrDefaultAsync();
                 if (find_medicine == null)
                 {
-
-                    var medicine = new Medicine { Name = icon.medicineName, company = find_company };
+                    var medicine = new Medicine { Name = icon.medicineName, company = find_company }; // Create ll Medicine
                     _context.medicine.Add(medicine);
                 }
             }
             return 0;
         }
-
-
-
     }
 }

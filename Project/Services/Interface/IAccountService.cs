@@ -5,12 +5,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace Project.Repositories.Interface
+namespace Project.Services.Interface
 {
-  public  interface ISecurityManager
+  public  interface IAccountService
     {
-
-         void SignIn(HttpContext httpContext, User user );
+        Task<User> Login(string login, string pass);
+        void SignIn(HttpContext httpContext, User user);
         void Signout(HttpContext httpContext);
 
     }

@@ -75,7 +75,7 @@ namespace Project.Controllers
             if (user !=null)
             {
             
-                securityManager.SignIn(this.HttpContext, user,"Admin");
+                securityManager.SignIn(this.HttpContext, user);
             }
             else
             {
@@ -125,7 +125,7 @@ namespace Project.Controllers
                 return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
             }
             return BadRequest();
-        }
+        } 
 
 
         [Authorize(Roles = "Admin")]
@@ -295,7 +295,6 @@ namespace Project.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult<IEnumerable<string>>> delete(int id)
         {
-       
             var find = await _context.doctor.FindAsync(id);
             if (find == null)
             {
@@ -304,31 +303,23 @@ namespace Project.Controllers
             else
             {    
                 _context.doctor.Remove(find);
-            }
-           
+            } 
            if (await _context.SaveChangesAsync() > 0)
             {
                 return Ok("Deleted Succesfully");
             }
-
-            return BadRequest();
-            
+            return BadRequest();          
         }
 
         [Authorize(Roles = "Admin")]
         [HttpPost("import")] //Done
         public async Task<IActionResult> import(IFormFile file)
         {
- 
             try
             {
                 fileRep.CreateFile(file);
                 var list = fileRep.read(file.FileName);
-
-               
                   await  fileRep.Add(list);
-               
-
                 if (await _context.SaveChangesAsync() > 0)
                     return Ok(list);
             }

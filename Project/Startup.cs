@@ -17,6 +17,8 @@ using Microsoft.Extensions.Options;
 using Project.Data;
 using Project.Repositories;
 using Project.Repositories.Interface;
+using Project.Services;
+using Project.Services.Interface;
 
 namespace Project
 {
@@ -68,6 +70,13 @@ namespace Project
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ISecurityManager, SecurityManager>();
             services.AddScoped<IFileRepository, FileRepository>();
+            services.AddScoped<IUserrRepository, UserrRepository>();
+            services.AddScoped<IDoctorRepository, DoctorRepository>();
+            services.AddScoped<IMedicineRepository, MedicineRepository>();
+            services.AddScoped<ICompanyRepository, CompanyRepository>();
+            services.AddScoped<IAdminService,AdminService>();
+            services.AddScoped<IAccountService, AccountService>();
+
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
 
             

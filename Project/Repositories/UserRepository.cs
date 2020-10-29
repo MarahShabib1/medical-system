@@ -24,12 +24,13 @@ namespace Project.Repositories
     {
         private readonly DataContext _context;
         private readonly IConfiguration _Configuration;
-
+     
         public UserRepository(DataContext context , IConfiguration configuration)
         {
             _Configuration = configuration;
             _context = context;
-        }
+        } 
+
         public async Task<User> Login(string login, string pass, string role)
         {
            
@@ -53,7 +54,6 @@ namespace Project.Repositories
             }
 
             return userCheck;
-
         }
 
      public async Task<User> CheckUser(string login_name)
@@ -74,11 +74,9 @@ namespace Project.Repositories
             var doctor = await _context.doctor.Where(o => o.Userid == id).FirstOrDefaultAsync();  
             return doctor;
         }
-
-     
-
         public string encrypte_pass(string pass)
         {
+           
             string key = _Configuration.GetValue<string>("Secret:key");
             pass += key;
             var passbyte = Encoding.UTF8.GetBytes(pass);
@@ -86,9 +84,6 @@ namespace Project.Repositories
             return encode1;
 
         }
-
-      
-
        public async Task<object> GetAllDoctors()
         {   //user with user role
           /*  var query1 = _context.user1.Where(t => t.id == 1).Select(o => new
@@ -106,7 +101,6 @@ namespace Project.Repositories
                 user_role = o.user.user_role.Select(ot => ot.Roleid).ToList()
             }).ToListAsync();
             return query;
-
         }
        public async Task<object> GetDoctorInfo(int id)
         {
@@ -120,14 +114,6 @@ namespace Project.Repositories
                 user_role = o.user.user_role.Select(ot => ot.Roleid).ToList()
             }).FirstOrDefaultAsync();
             return query;
-
         }
-
-       
-
-
-
-
-
     }
 }

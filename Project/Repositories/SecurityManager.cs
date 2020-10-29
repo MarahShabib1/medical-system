@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
+using Project.Data;
 using Project.Models;
 using Project.Repositories.Interface;
 using System;
@@ -12,16 +13,33 @@ namespace Project.Repositories
 {
     public class SecurityManager: ISecurityManager
     {
+        private readonly DataContext _context;
+        public SecurityManager()
+        {
 
-       public async void SignIn(HttpContext httpContext, User user, string role)
+        }
+        public SecurityManager(DataContext context)
+        {
+            _context = context;
+        }
+        public async void SignIn(HttpContext httpContext, User user)
         {
 
             var claims = new List<Claim>()
               { 
                  new Claim(ClaimTypes.Name,user.FirstName),
                   new Claim(ClaimTypes.Email,user.email),
-                  new Claim( ClaimTypes.Role,role),
+                 // new Claim( ClaimTypes.Role,role),
               };
+
+            var roles = _context.user_role.Where(o => o.Userid == user.id).ToList();
+            foreach (var item in roles)
+            {   
+                claims.Add(new Claim(ClaimTypes.Role, item.role.Name));
+            }
+
+
+
             var idn = new ClaimsIdentity(claims, "User Claim");
             var userPrinciple = new ClaimsPrincipal(idn);
            await httpContext.SignInAsync("User_Cookie",userPrinciple);
