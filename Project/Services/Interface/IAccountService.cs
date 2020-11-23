@@ -12,6 +12,7 @@ namespace Project.Services.Interface
         Task<User> Login(string login, string pass);
         void SignIn(HttpContext httpContext, User user);
         void Signout(HttpContext httpContext);
+        int Get_Current_Userid();
 
     }
 }

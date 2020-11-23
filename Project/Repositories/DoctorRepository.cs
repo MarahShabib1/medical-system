@@ -29,8 +29,21 @@ namespace Project.Repositories
             else
             {
                 _context.doctor.Add(model);
+                await _context.SaveChangesAsync();
                 return model;
             }
+        }
+
+        public async Task<Doctor> Get_Doctor_ByUserid(int Userid)
+        {
+            var doctor = await _context.doctor.Where(o => o.Userid == Userid).FirstOrDefaultAsync();
+            return doctor;
+        }
+
+        public async Task<Doctor> Get_Doctor_Byid(int id)
+        {
+            var doctor = await _context.doctor.Where(o => o.id == id).FirstOrDefaultAsync();
+            return doctor;
         }
 
         public async Task<object> Get_AllDoctors()

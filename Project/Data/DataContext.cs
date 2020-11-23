@@ -16,6 +16,16 @@ namespace Project.Data
   .WithMany().HasForeignKey(b => b.Userid)
   .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Entity<Doctor>()
+.HasOne(b => b.user)
+.WithMany().HasForeignKey(b => b.Userid)
+.OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<Records>()
+.HasOne(b => b.doctor)
+.WithMany().HasForeignKey(b => b.Doctorid)
+.OnDelete(DeleteBehavior.Restrict);
+
+
             builder.Entity<Medicine>()
         .HasOne(b => b.company)
         .WithMany().HasForeignKey(b => b.Companyid)

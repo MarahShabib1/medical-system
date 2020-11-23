@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using AutoMapper;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -52,8 +53,6 @@ namespace Project
                    options.Cookie.Name = "MarahShabib";
                   // options.LogoutPath = "/management/logout";
                });*/
-
-
             services
 .AddAuthentication(op =>
 {
@@ -66,7 +65,7 @@ namespace Project
     options.LogoutPath = "/Values/logout";
 });
 
-
+            services.AddHttpContextAccessor();
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ISecurityManager, SecurityManager>();
             services.AddScoped<IFileRepository, FileRepository>();
@@ -74,15 +73,17 @@ namespace Project
             services.AddScoped<IDoctorRepository, DoctorRepository>();
             services.AddScoped<IMedicineRepository, MedicineRepository>();
             services.AddScoped<ICompanyRepository, CompanyRepository>();
-            services.AddScoped<IAdminService,AdminService>();
+            services.AddScoped<IRecordsRepository, RecordsRepository>();
+            services.AddScoped<IRoleRepository, RoleRepository>();
+            services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+            services.AddScoped<IPrescriptionRepository, PrescriptionRepository>();
+            services.AddScoped<IPatientService, PatientService>();
+            services.AddScoped<IDoctorService, DoctorService>();
+            services.AddScoped<IEmployeeService,EmployeeService>();
             services.AddScoped<IAccountService, AccountService>();
-
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
-
+            services.AddScoped<IAdminService, AdminService>();
+            services.AddMvc().AddFluentValidation(o=>o.RegisterValidatorsFromAssemblyContaining<Startup>()).SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
             
-
-
-
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using FluentValidation.Results;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Project.DTOs;
 using Project.Models;
 using System;
 using System.Collections.Generic;
@@ -30,6 +32,10 @@ namespace Project.Services.Interface
         void Delete_Medicine(int id);
         void Delete_Company(int id);
         Task<object> Get_UserRole(int id);
+        Task<ValidationResult> Call_validator(User user);
+
+
+      
 
     }
 }

@@ -1,109 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Project.Data;
 using Project.Models;
-using Project.Repositories.Interface;
+using Project.Services.Interface;
 
 namespace Project.Controllers
 {
-    [Route("/[controller]")]
+    [Route("api/[controller]")]
     [ApiController]
-    public class DoctorController : ControllerBase
+    public class Doctor2Controller : ControllerBase
     {
         private readonly DataContext _context;
-        private readonly IUserRepository userRep;
-        private readonly IFileRepository fileRep;
-        private readonly ISecurityManager securityManager;
+        private readonly IDoctorService _doctorService;
+        private readonly IAccountService _accountService;
 
-        public DoctorController(
-            DataContext context,
-            IUserRepository UserRep,
-            ISecurityManager Securitymanager,
-            IFileRepository FileRep)
+        public Doctor2Controller(DataContext context, IDoctorService doctorService, IAccountService accountService)
         {
-            userRep = UserRep;
-            securityManager = Securitymanager;
+            _doctorService = doctorService;
             _context = context;
-            fileRep = FileRep;
+            _accountService = accountService;
         }
 
-
-        [Authorize(Roles = "Doctor")]
-        [HttpGet]
-        public ActionResult<IEnumerable<string>> Get()
-        {
-            return new string[] { "Doctor Page" };
-        }
-
-        [HttpGet("Messagelogin")]
-        public ActionResult<IEnumerable<string>> Login_Message()
-        {
-            return new string[] { "You should login first :)" };
-        }
-
-        //  [Authorize(Roles = "Doctor")]
-        [HttpPost("User")] //Done
-        public async Task<ActionResult<IEnumerable<string>>> Post(User model)
-        {
-            try
-            {
-                var user = await userRep.CheckUser(model._Login);
-
-                if (user == null)
-                {
-                    model.pwd = userRep.encrypte_pass(model.pwd);
-                    var id = await _context.roles.Where(o => o.Name == "Employee").FirstOrDefaultAsync(); // ta3deel
-                    model.user_role.Add(new Models.UserRole { Userid = model.id, Roleid = id.id });
-                    _context.user1.Add(model);
-                }
-                else
-                {
-                    return BadRequest("Faild :_login name already exist");
-                }
-
-                if (await _context.SaveChangesAsync() > 0)
-                {
-                    return Ok("Added successfully");
-                }
-            }
-            catch (Exception)
-            {
-                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
-            }
-            return BadRequest();
-        }
-
-
-        //[Authorize(Roles = "Doctor")]
         [HttpPost("Employee")] //Done
         public async Task<ActionResult<IEnumerable<string>>> Post(Employee model)
         {
             try
             {
-                var user = await userRep.CheckUser(model.Userid);
-                if (user == null)
+                var employee = await _doctorService.Create_Employee(model);
+                if (employee == null)
                 {
-                    return NotFound($"Could not find user with Userid of {model.Userid}");
-                }
-                else
-                {
-                    var doctor = await _context.employee.Where(o => o.Userid == model.Userid).FirstOrDefaultAsync();
-                    if (doctor == null)
-                    {
-                        _context.employee.Add(model);
-                    }
-                    else
-                    {
-                        return BadRequest($"Failed : Employee with Userid {model.Userid} is already exist");
-                    }
-
+                    return BadRequest("Faild :employee is already exist or Userid not Correct");
                 }
 
                 if (await _context.SaveChangesAsync() > 0)
@@ -116,71 +47,54 @@ namespace Project.Controllers
                 return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
             }
             return BadRequest();
-
         }
 
-
-        // [Authorize(Roles = "Doctor")]
         [HttpGet("AllEmployees")] //Done
-        public async Task<IActionResult> Get_Employees()
+        public async Task<IActionResult> Get_All_Employees()
         {
             try
             {
-
-                if (_context.employee.Count() == 0)
+                var Get_All_Employees = await _doctorService.Get_AllEmployees();
+                if (Get_All_Employees == null)
                 {
-                    return NotFound($"There is no Employee in DB");
+                    return NotFound($"There is no employees in DB");
                 }
                 else
                 {
-                    var Get_All_Employee = await _context.employee.Include(o => o.doctor).Include(y => y.user).ToListAsync();
-                    return Ok(Get_All_Employee);
+                    return Ok(Get_All_Employees);
                 }
             }
             catch (Exception)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get Employees");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get doctors");
             }
         }
 
-
-        // [Authorize(Roles = "Doctor")]
         [HttpGet("Employee/{id}")] //Done
         public async Task<IActionResult> Get_Employee(int id)
         {
             try
             {
-
-                if (_context.employee.Count() == 0)
+                var Get_Employee = await _doctorService.Get_Employee_Info(id);
+                if (Get_Employee == null)
                 {
-                    return NotFound($"There is no Employees in DB");
+                    return NotFound($"There is no Employee with Employeeid {id}");
                 }
-                else
-                {
-                    var Get_Employee = await _context.employee.Where(p => p.id == id).Include(o => o.doctor).Include(y => y.user).FirstOrDefaultAsync();
-                    if (Get_Employee == null)
-                    {
-                        return NotFound($"There is no Employee with EmployeeId {id}");
-                    }
-                    return Ok(Get_Employee);
-                }
+                return Ok(Get_Employee);
             }
             catch (Exception)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get Employee");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get doctors");
             }
         }
 
-
-       // [Authorize(Roles = "Doctor")]
         [HttpPut("Employee/{id}")] //Done
-        public async Task<ActionResult<IEnumerable<string>>> putdr([FromRoute] int id, Employee model)
+        public async Task<ActionResult<IEnumerable<string>>> put_Medicine(int id, Employee model)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-
             if (id != model.id)
             {
                 return BadRequest();
@@ -188,71 +102,54 @@ namespace Project.Controllers
             _context.Entry(model).State = EntityState.Modified;
             try
             {
-                var doctor = await _context.employee.Where(o => o.id == model.id).FirstOrDefaultAsync();
-                if (doctor == null)
-                {
-                    return NotFound($"Could not find Employee with EmployeeId of {model.id}");
-                }
                 if (await _context.SaveChangesAsync() > 0)
                 {
                     return Ok("Employee Updated successfully");
                 }
             }
-            catch (Exception)
+            catch (DbUpdateConcurrencyException)
             {
-                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
+                if (!(_doctorService.EmployeeExists(id)))
+                {
+                    return NotFound($"Could not find employee with id {model.id}");
+                }
+
             }
+
             return BadRequest();
         }
 
-
-        //[Authorize(Roles = "Doctor")]
         [HttpDelete("Employee/{id}")]
-        public async Task<ActionResult<IEnumerable<string>>> Delete_Employee(int id)
+        public async Task<ActionResult<IEnumerable<string>>> delete_Medicine(int id)
         {
-
-            var find = await _context.employee.FindAsync(id);
-            if (find == null)
+            if (!(_doctorService.EmployeeExists(id)))
             {
-                return NotFound($"Could not find Employee with EmployeeId of {id}");
+                return NotFound($"Could not find employee with id {id}");
             }
             else
             {
-              var rolee=  _context.user_role.Where(o => o.Userid == find.Userid && o.Roleid == 5).FirstOrDefault(); //t3deel
-                _context.user_role.Remove(rolee);
-                _context.employee.Remove(find);
+                _doctorService.Delete_Employee(id);
             }
 
             if (await _context.SaveChangesAsync() > 0)
             {
-                return Ok("Deleted Succesfully");
+                return Ok("Employee Deleted Succesfully");
             }
 
             return BadRequest();
         }
 
 
-
-        //[Authorize(Roles = "Doctor")]
         [HttpPost("Employee/{id}/{role}")] //Done
-        public async Task<ActionResult<IEnumerable<string>>> Assign_Role(int id , string role)
+        public async Task<ActionResult<IEnumerable<string>>> Assign_Role(int id, string role)
         {
             try
             {
-                var find = await _context.employee.FindAsync(id);
-                if (find == null)
+                var Add = await _doctorService.Assign_Roles(id, role);
+                if (!Add)
                 {
-                    return NotFound($"Could not find Employee with EmployeeId of {id}");
+                    return NotFound($"Error : Employee id or Role not Exist");
                 }
-                else
-                {
-                    // _context.user_role.Add(new Models.UserRole { Userid = model.id, Roleid = id.Roleid });
-                    var RoleId1 = await _context.roles.Where(o => o.Name == role).FirstOrDefaultAsync();
-                    //   find.user.user_role.Add(new Models.UserRole { Userid = find.Userid, Roleid = RoleId.id}); 
-                    
-                    _context.user_role.Add(new Models.UserRole { Userid = find.Userid, Roleid = RoleId1.id });
-                }
-
                 if (await _context.SaveChangesAsync() > 0)
                 {
                     return Ok("Assigned Succesfully");
@@ -265,8 +162,88 @@ namespace Project.Controllers
             return BadRequest();
         }
 
+        [HttpPost("Prescription")] //Done
+        public async Task<ActionResult<IEnumerable<string>>> Create_Prescription(Prescription model)
+        {
+            try
+            {
+                _doctorService.Create_Prescription(model);
+              
+                if (await _context.SaveChangesAsync() > 0)
+                {
+                    return Ok("Employee Added successfully");
+                }
+            }
+            catch (Exception)
+            {
+                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
+            }
+            return BadRequest();
+        }
 
+        [HttpGet("PatientInfo/{id}")] //Done
+        public async Task<IActionResult> Get_Patient_Info(int id)
+        {
+            try
+            {
+                var Patient_Info = await _doctorService.Get_Patient_Info(id);
+                if (Patient_Info == null)
+                {
+                    return NotFound($"There is no Patient with Userid {id}");
+                }
+                return Ok(Patient_Info);
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get Patient Info");
+            }
+        }
 
+        [HttpGet("PatientRecord/{id}")] //Done
+        public async Task<IActionResult> Get_Patient_Record(int id)
+        {
+            try
+            {
+                var Patient_Record = await _doctorService.Get_Patient_Record(id);
+                if (Patient_Record == null)
+                {
+                    return NotFound($"There is no Patient with Userid {id}");
+                }
+                return Ok(Patient_Record);
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get Patient Record");
+            }
+        }
+
+        [HttpGet("Generate/{fileName}")] //Done
+        public async Task<ActionResult<IEnumerable<string>>> Genereta_file(string fileName)
+        {
+            try
+            {
+                //get all users 
+                // generate and add information to the file 
+                //get the Doctorid from the cookie 
+                //get the Doctorid from the Userid
+                //try all in one function to ensure that its working
+                //function will be in the Doctorservice. 
+
+                //var Currentid = _accountService.Get_Current_Userid();
+                _doctorService.Generate_File(fileName, 1);
+                //Al_Student
+
+                if (await _context.SaveChangesAsync() > 0)
+                {
+                    return Ok("Employee Added successfully");
+                }
+            }
+            catch (Exception)
+            {
+                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
+            }
+            return BadRequest();
+        }
 
 
 

@@ -1,14 +1,22 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using FluentValidation.AspNetCore;
+using FluentValidation.Results;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Asn1;
+using Org.BouncyCastle.Asn1.Ocsp;
 using Project.Data;
+using Project.DTOs;
 using Project.Models;
 using Project.Repositories.Interface;
 using Project.Services.Interface;
+using Project.Validetors;
 using System;
 using System.Collections.Generic;
+
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace Project.Services
@@ -21,32 +29,33 @@ namespace Project.Services
         private readonly ICompanyRepository _companyRep;
         private readonly IMedicineRepository _medicineRep;
         private readonly IFileRepository _fileRep;
-
+        private readonly IRoleRepository _roleRep;
 
         public AdminService(DataContext context,
             IUserrRepository userRep,
             IDoctorRepository drRep,
             ICompanyRepository companyRep,
             IMedicineRepository medicineRep,
-            IFileRepository fileRep)
+            IFileRepository fileRep,
+            IRoleRepository roleRep)
         {
             _userRep = userRep;
             _drRep = drRep;
             _companyRep = companyRep;
             _medicineRep = medicineRep;
             _fileRep = fileRep;
+            _roleRep = roleRep;
             _context = context;
         }
         public async Task<User> Create_User(User model)
         {
             var user = await _userRep.Create_User(model);
             return user;
-
         }
 
         public async Task<Doctor> Create_Doctor(Doctor model)
         {
-            var user = await _context.user1.FindAsync(model.Userid);
+            var user = await _userRep.Check_User_ById(model.Userid);
             if (user != null)
             {
                 var doctor = await _drRep.Create_Doctor(model);
@@ -56,19 +65,15 @@ namespace Project.Services
             return null;
         }
 
-        public void Assign_DoctorRole(Doctor model)
+        public async  void Assign_DoctorRole(Doctor model)
         {
-            var user = _context.user1.Where(o => o.id == model.Userid).FirstOrDefault();
-            var DR_Roleid = _context.roles.Where(o => o.Name == "Doctor").FirstOrDefault();
-            user.user_role.Add(new Models.UserRole { Userid = model.id, Roleid = DR_Roleid.id });
+            var user = await _userRep.Check_User_ById(model.Userid);
+            var DR_Roleid = await _roleRep.Get_RoleId("Doctor");
+            user.user_role.Add(new Models.UserRole { Userid = model.id, Roleid = DR_Roleid });
         }
 
         public async Task<object> Get_AllDoctors()
         {
-            if (_context.doctor.Count() == 0)
-            {
-                return null;
-            }
             var All_Doctors = await _drRep.Get_AllDoctors();
 
             return All_Doctors;
@@ -150,7 +155,6 @@ namespace Project.Services
         {
             var medicine = _medicineRep.MedicineExists(id);
             return medicine;
-
         }
         public void Delete_Medicine(int id)
         {
@@ -158,9 +162,21 @@ namespace Project.Services
         }
         public void Delete_Company(int id)
         {
-
             _companyRep.Delete_Company(id);
         }
+
+        public async Task<ValidationResult> Call_validator(User user)
+        {
+            UserValidator validator = new UserValidator(_userRep);
+            ValidationResult result = await validator.ValidateAsync(user);
+            if (result.IsValid)
+            {
+               await _context.SaveChangesAsync();
+            }
+            return result;
+        }
+
+     
 
         public async Task<object> Get_UserRole(int id)
         {

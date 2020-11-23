@@ -1,333 +1,153 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Security.Claims;
-using System.Text;
+using System.Security.Principal;
+using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
-using Microsoft.AspNetCore.Authentication;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json.Serialization;
 using Project.Data;
-using Project.Migrations;
+using Project.DTOs;
 using Project.Models;
-using Project.Repositories.Interface;
-
-
+using Project.Services.Interface;
+using Project.Validetors;
 
 namespace Project.Controllers
 {
     [Route("/[controller]")]
     [ApiController]
-    public class AdminController : ControllerBase
+    [Authorize(Roles = "Admin")]
+    public class Admin2Controller : ControllerBase
     {
-       
+
         private readonly DataContext _context;
-        private readonly IUserRepository userRep;
-        private readonly IFileRepository fileRep;
-        private readonly ISecurityManager securityManager;
-     
+        private readonly IAdminService _adminService;
+        private readonly IMapper _mapper;
 
-        public AdminController(
-            DataContext context , 
-            IUserRepository UserRep ,
-            ISecurityManager Securitymanager, 
-            IFileRepository FileRep)
+        public Admin2Controller(  DataContext context,IAdminService adminService, IMapper mapper)
         {
-             userRep = UserRep;
-            securityManager = Securitymanager;
-           _context = context;
-            fileRep = FileRep;
+            _adminService = adminService;
+            _mapper = mapper;
+            _context = context;
         }
 
-       // [Authorize(AuthenticationSchemes = "Admin")]
-        [Authorize(Roles ="Admin")]
-        [HttpGet]
-        public ActionResult<IEnumerable<string>> Get()
+        [Authorize(Roles = "Admin")]
+        [HttpPost("User")] 
+        public async Task Post(User model)
         {
-            return new string[] { "value2" };
-        }
-       
-        [HttpGet("index")]
-        public ActionResult<IEnumerable<string>> index()
-        {
-
-            return new string[] { "logadmincont" };
+            await _adminService.Create_User(model);
         }
 
-        [HttpGet("Messagelogin")]
-        public ActionResult<IEnumerable<string>> Login_Message()
+        [Authorize(Roles = "Admin")]
+        [HttpPost("Doctor")] 
+        public async Task Post(Doctor model)
         {
-            return new string[] { "You should login first :)" };
+                await _adminService.Create_Doctor(model);
         }
-      
 
-        [HttpGet("login/{login}/{pass}")]   //Done
-        public async Task<ActionResult<IEnumerable<string>>> login(string login, string pass)
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("AllDoctors")] 
+        public async Task<IActionResult> Get_All_Doctor()
+        {    
+                var Get_All_Doctor = await _adminService.Get_AllDoctors(); 
+                  return Ok(Get_All_Doctor);     
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("Doctor/{id}")] 
+        public async Task<IActionResult> Get_DR(int id)
         {
-           var user = await userRep.Login(login, pass, "Admin");
-           
-            if (user !=null)
-            {
             
-                securityManager.SignIn(this.HttpContext, user);
-            }
-            else
-            {
-                return new string[] { "Login Failed" };
-            }
-         
-
-            return new string[] {"Login Succ"};
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpGet("logout")] //Done
-        public ActionResult<IEnumerable<string>> logout()
-        {
-            securityManager.Signout(this.HttpContext);
-
-            return new string[] { "Logout Succ"};
-        }
-
-      //  [Authorize(Roles = "Admin")]
-        [HttpPost("User")] //Done
-        public async Task<ActionResult<IEnumerable<string>>> Post(User model)
-        {   
-            try
-            {
-                var user = await userRep.CheckUser(model._Login);
-               
-                if (user == null)
-                {
-                    model.pwd = userRep.encrypte_pass(model.pwd);
-                    var id = _context.user_role.Where(o => o.role.Name == "Doctor").FirstOrDefault(); // ta3deel
-                    model.user_role.Add(new Models.UserRole { Userid = model.id, Roleid = id.Roleid });
-                    _context.user1.Add(model);
-                }
-                else
-                {
-                    return BadRequest("Faild :_login name already exist" );
-                }
-             
-                if (await _context.SaveChangesAsync() > 0)
-                {
-                    return Ok("Added successfully");
-                }
-            }
-            catch (Exception)
-            {
-                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
-            }
-            return BadRequest();
-        } 
-
-
-        [Authorize(Roles = "Admin")]
-        [HttpPost("Doctor")] //Done
-        public async Task< ActionResult<IEnumerable<string>>> Post(Doctor model)
-        {   
-            try
-            {
-                var user = await userRep.CheckUser(model.Userid);
-                if (user == null)
-                {
-                    return NotFound($"Could not find user with Userid of {model.Userid}");
-                }
-                else
-                {
-                    var doctor = await userRep.CheckDoctor(model.Userid);
-                    if (doctor == null)
-                    {
-                        _context.doctor.Add(model);
-                    }
-                    else
-                    {
-                        return BadRequest($"Failed : Doctor with Userid {model.Userid} is already exist");
-                    }
-
-                }
-                
-                if (await _context.SaveChangesAsync() > 0)
-                {
-                    return Ok("Doctor Added successfully");
-                }
-            }
-            catch (Exception)
-            {
-                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
-            }
-            return BadRequest();
-
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpGet("AllDoctors")] //Done
-        public  async Task<IActionResult> GetDR()
-        {
-            try
-            {
-             
-                if (_context.doctor.Count()==0)
-                {
-                    return NotFound($"There is no doctors in DB");
-                }
-                else
-                {
-                    var Get_All_Doctor = await userRep.GetAllDoctors();
-                    return Ok(Get_All_Doctor);
-                }
-            }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get doctors");
-            }
-        }
-        [Authorize(Roles = "Admin")]
-        [HttpGet("Doctor/{id}")] //Done
-        public async Task<IActionResult> GetSDR(int id)
-        {
-            try
-            {
-               
-                if (_context.doctor.Count() == 0)
-                {
-                    return NotFound($"There is no doctors in DB");
-                }
-                else
-                {
-                    var Get_Doctor = await userRep.GetDoctorInfo(id);
+                var Get_Doctor = await _adminService.Get_Doctor_Info(id);
                     if (Get_Doctor == null)
                     {
                         return NotFound($"There is no doctors with Doctorid {id}");
                     }
-                    return Ok(Get_Doctor);
-                }
-            }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get doctors");
-            }
+                    return Ok(Get_Doctor);   
         }
 
 
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")] // doctor validation
         [HttpPut("Doctor/{id}")] //Done
-        public async Task<ActionResult<IEnumerable<string>>> putdr([FromRoute] int id,Doctor model)
-        { 
+        public async Task<ActionResult<IEnumerable<string>>> put_dr( int id, Doctor model)
+        {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-
             if (id != model.id)
             {
                 return BadRequest();
             }
-      
-           
-            _context.Entry(model).State = EntityState.Modified;
-
             try
             {
+                var doctor = await _adminService.Update_Doctor(model);
 
-                var doctor = await _context.doctor.Where(o => o.id == model.id && o.Userid == model.Userid).FirstOrDefaultAsync();
                 if (doctor == null)
                 {
                     return NotFound($"Could not find Doctor with Doctorid of {model.id} and Userid of {model.Userid} PS : You cant update Userid");
                 }
+
                 if (await _context.SaveChangesAsync() > 0)
                 {
                     return Ok("Doctor Updated successfully");
                 }
             }
             catch (Exception)
-            {
-              
+            { 
                 return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
             }
             return BadRequest();
-
         }
 
+
         [Authorize(Roles = "Admin")]
-        [HttpPut("User/{id}")] //Done
-        public async Task< ActionResult<IEnumerable<string>>> Put2(int id,User model)
+        [HttpDelete("Doctor/{id}")] // warning it its in the employee table !!
+        public async Task<ActionResult<IEnumerable<string>>> delete_dr(int id)
         {
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if (id != model.id)
-            {
-                return BadRequest();
-            }
-            _context.Entry(model).State = EntityState.Modified;
-            try
-            {
-
-               if( await _context.SaveChangesAsync() >0)
-                    return Ok("User Updated successfully");
-            }
-            catch (Exception)
-            {
-                var user = await userRep.CheckUser(model.id);
-                if (user == null)
+          
+                var doctor = await _adminService.Delete_Doctor(id);
+                if (doctor == null)
                 {
-                    return NotFound($"Could not find user with Userid of {model.id}");
+                    return NotFound($"Could not find Doctor with Doctorid of {id}");
                 }
-                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
-            }
 
+                if (await _context.SaveChangesAsync() > 0)
+                {
+                    return Ok("Deleted Succesfully");
+                }
+            
             return BadRequest();
         }
 
-
         [Authorize(Roles = "Admin")]
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<IEnumerable<string>>> delete(int id)
-        {
-            var find = await _context.doctor.FindAsync(id);
-            if (find == null)
-            {
-                return NotFound($"Could not find Doctor with Doctorid of {id}");
-            }
-            else
-            {    
-                _context.doctor.Remove(find);
-            } 
-           if (await _context.SaveChangesAsync() > 0)
-            {
-                return Ok("Deleted Succesfully");
-            }
-            return BadRequest();          
-        }
-
-        [Authorize(Roles = "Admin")]
-        [HttpPost("import")] //Done
-        public async Task<IActionResult> import(IFormFile file)
+        [HttpGet("import")]
+        public IActionResult import(IFormFile file)
         {
             try
             {
-                fileRep.CreateFile(file);
-                var list = fileRep.read(file.FileName);
-                  await  fileRep.Add(list);
-                if (await _context.SaveChangesAsync() > 0)
-                    return Ok(list);
-            }
-            catch (Exception)
-            {
+                _adminService.import(file);
+
+                if (_context.SaveChanges() > 0)
+                {
+                    return Ok("Added");
+                }
+                
+
+            }   catch (Exception)
+            { 
                 return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
             }
-            return BadRequest();
+        return BadRequest();
+           
         }
 
         [Authorize(Roles = "Admin")]
@@ -336,67 +156,82 @@ namespace Project.Controllers
         {
             try
             {
-
-                if (_context.medicine.Count() == 0)
+                var medicines = await _adminService.Get_AllMedicines();
+                if (medicines == null)
                 {
-                    return NotFound($"There is no Medicines in DB");
+                    return BadRequest("No Medicines in the DB");
                 }
                 else
                 {
-                    var query = await _context.medicine.Include(o => o.company).ToListAsync();
-                    return Ok(query);
+                    return Ok(medicines);
                 }
+                    
             }
             catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get Medicines");
             }
         }
+
         [Authorize(Roles = "Admin")]
-        [HttpGet("Medicine/{id}")] //Done
-        public async Task<IActionResult> GetMed(int id)
+        [HttpGet("Medicine/{name}")] //Done
+        public async Task<IActionResult> GetMed(string name )
         {
             try
             {
-
-                if (_context.medicine.Count() == 0)
+                var medicine = await _adminService.Get_Medicine(name);
+                if (medicine == null)
                 {
-                    return NotFound($"There is no Medicines in DB");
+                    return NotFound("No Medicine with this name in the the DB");
                 }
                 else
                 {
-                    var query = await _context.medicine.Where(o => o.id == id).Include(o => o.company).FirstOrDefaultAsync();
-                    if (query != null) {
-                        return Ok(query);
-                    }
-                    else
-                    {
-                        return NotFound($"Could not find Medicine with id of {id}");
-                    }
-                   
+                    return Ok(medicine);
                 }
             }
             catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get Medicines");
             }
-        
         }
+
         [Authorize(Roles = "Admin")]
         [HttpGet("AllCompanies")] //Done
         public async Task<IActionResult> GetAllCompanies()
         {
             try
             {
-
-                if (_context.company.Count() == 0)
+                var companies = await _adminService.Get_AllCompanies();
+                if (companies == null)
                 {
-                    return NotFound($"There is no Medicines in DB");
+                    return BadRequest("No companies in the DB");
                 }
                 else
                 {
-                    var query = await _context.company.ToListAsync();
-                    return Ok(query);
+                    return Ok(companies);
+                }
+
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get companies");
+            }
+        }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("Company/{name}")] //Done
+        public IActionResult GetCompany(string name)
+        {
+            try
+            {
+                var company =  _adminService.Get_Company(name);
+                if (company == null)
+                {
+                    return NotFound("No Medicine with this name in the the DB");
+                }
+                else
+                {
+                    return Ok(company);
                 }
             }
             catch (Exception)
@@ -406,47 +241,13 @@ namespace Project.Controllers
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpGet("Company/{id}")] //Done
-        public async Task<IActionResult> Getcompany(int id)
-        {
-            try
-            {
-
-                if (_context.company.Count() == 0)
-                {
-                    return NotFound($"There is no Medicines in DB");
-                }
-                else
-                {
-                    var query = await _context.company.Where(o => o.id == id).FirstOrDefaultAsync();
-                    if (query != null)
-                    {
-                        return Ok(query);
-                    }
-                    else
-                    {
-                        return NotFound($"Could not find Company with id of {id}");
-                    }
-
-                }
-            }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get Companies");
-            }
-
-        }
-
-        [Authorize(Roles = "Admin")]
         [HttpPut("Medicine/{id}")] //Done
-        public async Task<ActionResult<IEnumerable<string>>> PutMedicine(int id, Medicine model)
+        public async Task<ActionResult<IEnumerable<string>>> put_Medicine(int id, Medicine model)
         {
-
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-
             if (id != model.id)
             {
                 return BadRequest();
@@ -454,33 +255,32 @@ namespace Project.Controllers
             _context.Entry(model).State = EntityState.Modified;
             try
             {
-
                 if (await _context.SaveChangesAsync() > 0)
-                    return Ok("Medicine Updated successfully");
-            }
-            catch (Exception)
-            {
-                var medicine = await _context.medicine.FindAsync(id);
-                if (medicine == null)
                 {
-                    return NotFound($"Could not find medicine withid of {model.id}");
+                    return Ok("Company Updated successfully");
                 }
-                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!(_adminService.MedicineExists(id)))
+                {
+                    return NotFound($"Could not find company with id {model.id}");
+                }
+
             }
 
             return BadRequest();
         }
+
 
         [Authorize(Roles = "Admin")]
         [HttpPut("Company/{id}")] //Done
-        public async Task<ActionResult<IEnumerable<string>>> Putcompany(int id, Company model)
-        {    // on delete cascade when deleting comapny all its medicines will be deleted too.
-
+        public async Task<ActionResult<IEnumerable<string>>> put_Company(int id, Company model)
+        {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-
             if (id != model.id)
             {
                 return BadRequest();
@@ -488,69 +288,61 @@ namespace Project.Controllers
             _context.Entry(model).State = EntityState.Modified;
             try
             {
-
                 if (await _context.SaveChangesAsync() > 0)
-                    return Ok("Company Updated successfully");
-            }
-            catch (Exception)
-            {
-                var Company = await _context.company.FindAsync(id);
-                if (Company == null)
                 {
-                    return NotFound($"Could not find company with id of {model.id}");
+                    return Ok("Company Updated successfully");
                 }
-                return this.StatusCode(StatusCodes.Status500InternalServerError, "Database Failure");
             }
-
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!(_adminService.CompanyExists(id)))
+                {
+                    return NotFound($"Could not find company with id {model.id}");
+                } 
+            }
             return BadRequest();
         }
+
 
         [Authorize(Roles = "Admin")]
         [HttpDelete("Medicine/{id}")]
         public async Task<ActionResult<IEnumerable<string>>> delete_Medicine(int id)
         {
-
-            var find = await _context.medicine.FindAsync(id);
-            if (find == null)
+            if (!(_adminService.MedicineExists(id)))
             {
-                return NotFound($"Could not find Medicine with id of {id}");
+                return NotFound($"Could not find medicine with id {id}");
             }
             else
             {
-                _context.medicine.Remove(find);
+                _adminService.Delete_Medicine(id);
             }
 
             if (await _context.SaveChangesAsync() > 0)
             {
-                return Ok("Deleted Succesfully");
+                return Ok("Medicine Deleted Succesfully");
             }
 
             return BadRequest();
-
         }
 
         [Authorize(Roles = "Admin")]
-        [HttpDelete("company/{id}")]
+        [HttpDelete("Company/{id}")]
         public async Task<ActionResult<IEnumerable<string>>> delete_Company(int id)
         {
-
-            var find = await _context.company.FindAsync(id);
-            if (find == null)
+            if (!(_adminService.CompanyExists(id)))
             {
-                return NotFound($"Could not find Company with id of {id}");
+                return NotFound($"Could not find company with id {id}");
             }
             else
             {
-                _context.company.Remove(find);
+                _adminService.Delete_Company(id);
             }
 
             if (await _context.SaveChangesAsync() > 0)
             {
-                return Ok("Deleted Succesfully");
+                return Ok("Company Deleted Succesfully");
             }
-
             return BadRequest();
-
         }
 
 
@@ -558,36 +350,12 @@ namespace Project.Controllers
         [HttpGet("UserRole/{id}")] //Done
         public async Task<IActionResult> Get_UserRole(int id)
         {
-            try
+            var result = await _adminService.Get_UserRole(id);
+            if (result == null)
             {
-                var find = await _context.user_role.Where(o => o.Userid == id).FirstOrDefaultAsync();
-                if (find == null)
-                {
-                    return NotFound($"Could not find User-role for User with id of {id}");
-                }
-                else
-                {
-                    var roleu = await _context.user1.Where(o=>o.id==id).Select(o => new
-                    {
-                        user_role = o.user_role.Select(o => new
-                        {
-                            Roleid=o.role.id,
-                            Name=o.role.Name
-                        }
-                        ).ToList()
-              
-                    }).FirstOrDefaultAsync();
-            
-                    return Ok(roleu);
-
-                }
+                return NotFound($"Could not find User-role for User with id of {id}");
             }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, "Failed to get Companies");
-            }
-
+            return Ok(result);
         }
-
     }
 }

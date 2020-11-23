@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Project.Services
@@ -19,14 +20,16 @@ namespace Project.Services
 
         private readonly IUserrRepository _userRep;
         private readonly DataContext _context;
-      
+        private readonly IHttpContextAccessor _httpContextAccessor;
         public AccountService(DataContext context,
-            IUserrRepository userRep
-            
+            IUserrRepository userRep,
+             IHttpContextAccessor httpContextAccessor
+
             )
         {
             _userRep = userRep;
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<User> Login(string login, string pass)
@@ -58,8 +61,9 @@ namespace Project.Services
 
             var claims = new List<Claim>()
               {
-                 new Claim(ClaimTypes.Name,user.FirstName),
-                  new Claim(ClaimTypes.Email,user.email),
+                  new Claim(ClaimTypes.NameIdentifier,user.id.ToString()),
+                  new Claim(ClaimTypes.Name,user.FirstName),
+                  new Claim(ClaimTypes.Email,user.Email),
                  // new Claim( ClaimTypes.Role,role),
               };
 
@@ -73,6 +77,7 @@ namespace Project.Services
 
             var idn = new ClaimsIdentity(claims, "User Claim");
             var userPrinciple = new ClaimsPrincipal(idn);
+           
             await httpContext.SignInAsync("User_Cookie", userPrinciple);
         }
 
@@ -82,7 +87,17 @@ namespace Project.Services
             await httpContext.SignOutAsync();
         }
 
+        public int Get_Current_Userid()
+        {
 
+            var identity =(ClaimsIdentity)_httpContextAccessor.HttpContext.User.Identity;
+            IEnumerable<Claim> claims = identity.Claims;
+            var cc = claims.ToArray();
+            var tt = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+            int userid = int.Parse(tt.Value);
+            return userid;
+        }
+     
 
 
 

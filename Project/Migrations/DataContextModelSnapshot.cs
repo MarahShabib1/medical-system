@@ -118,13 +118,15 @@ namespace Project.Migrations
 
                     b.Property<string>("Case");
 
-                    b.Property<int>("Employeeid");
+                    b.Property<int>("Doctorid");
 
-                    b.Property<DateTime>("EndDate");
+                    b.Property<int?>("Employeeid");
+
+                    b.Property<DateTime?>("EndDate");
 
                     b.Property<string>("ExtraInfo");
 
-                    b.Property<int>("Prescriptionid");
+                    b.Property<int?>("Prescriptionid");
 
                     b.Property<DateTime>("StartDate");
 
@@ -133,6 +135,8 @@ namespace Project.Migrations
                     b.Property<int>("status");
 
                     b.HasKey("id");
+
+                    b.HasIndex("Doctorid");
 
                     b.HasIndex("Employeeid");
 
@@ -201,7 +205,7 @@ namespace Project.Migrations
                     b.HasOne("Project.Models.User", "user")
                         .WithMany()
                         .HasForeignKey("Userid")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Project.Models.Employee", b =>
@@ -231,15 +235,18 @@ namespace Project.Migrations
 
             modelBuilder.Entity("Project.Models.Records", b =>
                 {
+                    b.HasOne("Project.Models.Doctor", "doctor")
+                        .WithMany()
+                        .HasForeignKey("Doctorid")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Project.Models.Employee", "employee")
                         .WithMany()
-                        .HasForeignKey("Employeeid")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("Employeeid");
 
                     b.HasOne("Project.Models.Prescription", "prescription")
                         .WithMany()
-                        .HasForeignKey("Prescriptionid")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .HasForeignKey("Prescriptionid");
 
                     b.HasOne("Project.Models.User", "user")
                         .WithMany()
